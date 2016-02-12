@@ -94,18 +94,18 @@ end
 
 # Prepare the model
 
-numcounties = length(names)
-numedges = num_edges(regionnet)
-numsteps = 1 #86
+#numcounties = length(names)
+#numedges = num_edges(regionnet)
+#numsteps = 1 #86
 
 function newmodel(ns)
-    global numsteps = ns
+    #global numsteps = ns
 
     m = Model(MyNumeric)
 
-    setindex(m, :time, collect(2015:2015+numsteps-1))
+    setindex(m, :time, collect(2015:2015+ns-1))
     setindex(m, :regions, names)
-    setindex(m, :edges, collect(1:numedges))
+    setindex(m, :edges, collect(1:num_edges(regionnet)))
 
     return m
 end
