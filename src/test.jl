@@ -5,7 +5,7 @@ m = newsoletransportation();
 @time run(m)
 
 println("Transportation optimization...")
-@time sol = soletransportation();
+@time sol = soletransportation(); # 15 minutes
 println(sol)
 
 include("Consumption.jl")
@@ -15,7 +15,7 @@ m = newsoleconsumption();
 @time run(m)
 
 println("Consumption optimization...")
-@time sol = soleconsumption();
+@time sol = soleconsumption(); # 1 second
 println(sol)
 
 include("Production.jl")
@@ -26,4 +26,14 @@ m = newsoleproduction();
 
 println("Production optimization...")
 @time sol = soleproduction();
+println(sol)
+
+include("Economy.jl")
+
+println("Economy test...")
+m = newsoleeconomy();
+@time run(m)
+
+println("Economy optimization...")
+@time sol = soleeconomy();
 println(sol)

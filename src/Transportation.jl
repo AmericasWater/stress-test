@@ -3,24 +3,24 @@ using Distributions
 
 include("world.jl")
 
+# Reinterpret Transportation to be all imports
 @defcomp Transportation begin
     regions = Index()
     edges = Index()
 
     link_capacities = Parameter(index=[edges, time])
-    link_costs = Parameter(index=[edges, time])
-    costs_overexport = Parameter() # exporting more than you have!
+    link_costs = Parameter(index=[edges, time]) # Per unit
 
-    exported = Parameter(index=[edges, time])
+    imported = Parameter(index=[edges, time])
 
-    export_costs = Variable(index=[regions, time]) # Includes over-capacity costs
+    realimports = Variable(index=[edges, time])
+    transportspending = Variable(index=[edges, time]) # Total spent on transport
 
     # Everything over capacity is lost
     regionimports = Variable(index=[regions, time])
     regionexports = Variable(index=[regions, time])
 
-    produced = Parameter(index=[regions, time])
-    marketed = Variable(index=[regions, time])
+    balance = Variable(index=[regions, time])
 end
 
 function timestep(c::Transportation, tt::Int)
@@ -28,32 +28,29 @@ function timestep(c::Transportation, tt::Int)
     p = c.Parameters
     d = c.Dimensions
 
-    realexports = map(min, p.exported[:, tt], p.link_capacities[:, tt])
-
-    v.regionimports = zeros(numcounties, numsteps)
+    for ee in 1:numedges
+        v.realimports[ee, tt] = min(p.imported[ee, tt], p.link_capacities[ee, tt])
+        v.transportspending[ee, tt] = p.imported[ee, tt] * p.link_costs[ee, tt]
+    end
 
     edge1 = 1
     for ii in 1:numcounties
         numneighbors = out_degree(regverts[names[ii]], regionnet)
-        v.export_costs[ii, tt] = sum(p.exported[edge1:edge1 + numneighbors - 1, tt] .* p.link_costs[edge1:edge1 + numneighbors - 1, tt])
-        v.regionexports[ii, tt] = sum(realexports[edge1:edge1 + numneighbors - 1])
-        dests = getkey(destiis, ii, Int64[])
-        for dest in dests
-            v.regionimports[dest, tt] += realexports[edge1]
-            edge1 += 1 # length(dests) == numneighbors
-        end
-    end
+        #v.import_spending[ii, tt] = sum(p.imported[edge1:edge1 + numneighbors - 1, tt] .* p.link_costs[edge1:edge1 + numneighbors - 1, tt]) # Don't use this any more; keep at the edge level
+        v.regionimports[ii, tt] = sum(v.realimports[edge1:edge1 + numneighbors - 1, tt])
 
-    v.marketed = p.produced + v.regionimports - v.regionexports
-    if any(v.marketed .< 0)
-        v.export_costs += (v.marketed .< 0) * p.costs_overexport
-        v.regionexports += v.marketed .* (v.marketed .< 0)
-        v.marketed[v.marketed .< 0] = 0
+        sources = get(sourceiis, ii, Int64[])
+        for source in sources
+            v.regionexports[source, tt] += v.realimports[edge1, tt]
+            edge1 += 1 # length(sources) == numneighbors
+        end
+
+        v.balance[ii, tt] = v.regionimports[ii, tt] - v.regionexports[ii, tt]
     end
 end
 
 function soleobjective_transportation(model::Model)
-    -sum(model[:Transportation, :export_costs]) # minimize costs
+    -sum(model[:Transportation, :import_spending]) # minimize costs
 end
 
 function default_exported()
@@ -63,22 +60,19 @@ end
 function inittransportation(m::Model)
     transit = addcomponent(m, Transportation)
 
-    transit[:link_capacities] = repeat(Number[1e6], outer=[numedges, numsteps])
-    transit[:link_costs] = repeat(convert(Vector{Number}, rand(LogNormal(log(.1), .1), numedges)), outer=[1, numsteps]);
-    transit[:costs_overexport] = 1000.0
+    transit[:link_capacities] = repeat(MyNumeric[1e6], outer=[numedges, numsteps])
+    transit[:link_costs] = repeat(convert(Vector{MyNumeric}, rand(LogNormal(log(.1), .1), numedges)), outer=[1, numsteps]);
 
     transit
 end
 
 function newsoletransportation()
-    m = newmodel()
+    m = newmodel(1)
 
     transit = inittransportation(m)
 
-    transit[:produced] = convert(Array{Number, 2}, rand(LogNormal(log(1000.0), 1.), numcounties, numsteps))
-
     # Default to be overwritten
-    transit[:exported] = convert(Array{Number, 2}, rand(LogNormal(log(1000), 100), numedges, numsteps))
+    transit[:imported] = convert(Array{MyNumeric, 2}, rand(LogNormal(log(1000), 100), numedges, numsteps))
 
     m
 end
@@ -88,7 +82,7 @@ using OptiMimi
 function soletransportation()
     m = newsoletransportation()
 
-    optprob = problem(m, [:Transportation], [:exported], [0.], [1e6], soleobjective_transportation);
+    optprob = problem(m, [:Transportation], [:imported], [0.], [1e6], soleobjective_transportation);
 
     solution(optprob, () -> default_exported())
 end
