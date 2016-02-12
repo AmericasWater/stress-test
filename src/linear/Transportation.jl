@@ -1,13 +1,12 @@
+# The transporation component
+#
+# Each region is linked to other regions, accoring to the `regionnet`.  This
+# component determines the total imports and exports for each region, based on the
+# transport on each edge.
+
 using Mimi
 using Distributions
 
-"""
-The transporation component
-
-Each region is linked to other regions, accoring to the `regionnet`.  This
-component determines the total imports and exports for each region, based on the
-transport on each edge.
-"""
 @defcomp Transportation begin
     regions = Index()
     edges = Index()
@@ -37,13 +36,13 @@ function timestep(c::Transportation, tt::Int)
     d = c.Dimensions
 
     # Costs are easy: just resource imported * cost-per-unit
-    for ee in 1:d.edges
+    for ee in d.edges
         v.cost[ee, tt] = p.imported[ee, tt] * p.cost_edge[ee, tt]
     end
 
     # Sum over all edges for each region to translate to region-basis
     edge1 = 1
-    for ii in 1:d.regions
+    for ii in d.regions
         # Get the number of edges this county imports from
         numneighbors = out_degree(regverts[names[ii]], regionnet)
 
@@ -80,5 +79,5 @@ function inittransportation(m::Model)
 end
 
 "Default import is 0"
-default_imported(m::Model) = [0. for i in 1:m.indices_counts[:edges]*m.indices_counts[:time]]
+default_imported(m::Model) = zeros(m.indices_counts[:edges], m.indices_counts[:time])
 

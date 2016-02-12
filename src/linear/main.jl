@@ -1,6 +1,6 @@
-using OptiMimi
-
 include("../world.jl")
+
+using OptiMimi
 
 include("Production.jl")
 include("Transportation.jl")
@@ -48,13 +48,13 @@ end
 
 # Set up the constraints
 constraints = Function[]
-for tt in 1:numsteps
-    constraints = [constraints; map(rr -> makeconstraint(rr, tt), 1:numcounties)]
+for tt in 1:m.indices_counts[:time]
+    constraints = [constraints; map(rr -> makeconstraint(rr, tt), 1:m.indices_counts[:regions])]
 end
 
 # Create the OptiMimi optimization problem
 optprob = problem(m, [:Production, :Transportation], [:quota, :imported], [0., 0.], [1e6, 1e6], objective, constraints=constraints, algorithm=:GUROBI_LINPROG);
 
 println("Solving...")
-@time sol = solution(optprob, () -> [default_quota(); default_imported()])
+@time sol = solution(optprob, (m::Model) -> [vec(default_quota(m)); vec(default_imported(m))])
 println(sol)

@@ -1,13 +1,12 @@
+# The consumption component
+#
+# Each region has an `demand`, and compares this to the amount of `marketed`
+# resource.  The result is a `surplus`, which may be negative if `marketed` <
+# `demand`.
+
 using Mimi
 using Distributions
 
-"""
-The consumption component
-
-Each region has an `demand`, and compares this to the amount of `marketed`
-resource.  The result is a `surplus`, which may be negative if `marketed` <
-`demand`.
-"""
 @defcomp Consumption begin
     regions = Index()
 

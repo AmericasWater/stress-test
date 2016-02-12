@@ -1,11 +1,10 @@
+# The economy component
+#
+# Determines the available resource for consumption, as a balance between local
+# production, imports, and exports.
+
 using Mimi
 
-"""
-The economy component
-
-Determines the available resource for consumption, as a balance between local
-production, imports, and exports.
-"""
 @defcomp Economy begin
     regions = Index()
     edges = Index()
@@ -29,7 +28,7 @@ function timestep(c::Economy, tt::Int)
     p = c.Parameters
     d = c.Dimensions
 
-    for rr in 1:numcounties
+    for rr in d.regions
         v.marketed[rr, tt] = p.produced[rr, tt] + p.regionimports[rr, tt] - p.regionexports[rr, tt]
     end
 end

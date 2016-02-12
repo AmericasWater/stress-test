@@ -26,15 +26,18 @@ empty_regnetwork() = SimpleRegionNetwork(true, ExVertex[], 0, Vector{Vector{ExEd
 using DataFrames
 
 suffix = (filterstate != nothing ? "-$filterstate" : "")
+todata = relpath(joinpath(dirname(@__FILE__), "../data"))
 
-if isfile("../data/regionsources$suffix.jld")
+if isfile(joinpath(todata, "regionsources$suffix.jld"))
     println("Loading from saved region network...")
 
-    regionnet = deserialize(open("../data/regionnet$suffix.jld", "r"))
-    names = deserialize(open("../data/regionnames$suffix.jld", "r"))
-    regverts = deserialize(open("../data/regionvertices$suffix.jld", "r"))
-    sourceiis = deserialize(open("../data/regionsources$suffix.jld", "r"))
+    regionnet = deserialize(open(joinpath(todata, "regionnet$suffix.jld"), "r"))
+    names = deserialize(open(joinpath(todata, "regionnames$suffix.jld"), "r"))
+    regverts = deserialize(open(joinpath(todata, "regionvertices$suffix.jld"), "r"))
+    sourceiis = deserialize(open(joinpath(todata, "regionsources$suffix.jld"), "r"))
 else
+    println("Trying to create a new region network...")
+
     # Load the network of counties
     counties = readtable("../../data/county-info.csv", eltypes=[UTF8String, UTF8String, UTF8String, UTF8String, Float64, Float64, Float64, Float64, Float64, Float64, Float64])
 
@@ -86,10 +89,10 @@ else
         sourceiis[indexin([fips], names)[1]] = indexin(neighbors, names)
     end
 
-    serialize(open("../data/regionnet$suffix.jld", "w"), regionnet)
-    serialize(open("../data/regionnames$suffix.jld", "w"), names)
-    serialize(open("../data/regionvertices$suffix.jld", "w"), regverts)
-    serialize(open("../data/regionsources$suffix.jld", "w"), sourceiis)
+    serialize(open(joinpath(todata, "regionnet$suffix.jld"), "w"), regionnet)
+    serialize(open(joinpath(todata, "regionnames$suffix.jld"), "w"), names)
+    serialize(open(joinpath(todata, "regionvertices$suffix.jld"), "w"), regverts)
+    serialize(open(joinpath(todata, "regionsources$suffix.jld"), "w"), sourceiis)
 end
 
 # Prepare the model

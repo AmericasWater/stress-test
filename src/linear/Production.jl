@@ -1,12 +1,11 @@
+# The production component
+#
+# Each region has the ability to produce the resource.  It will do so under a
+# linear cost structure, and at the level set by `quota`.
+
 using Mimi
 using Distributions
 
-"""
-The production component
-
-Each region has the ability to produce the resource.  It will do so under a
-linear cost structure, and at the level set by `quota`.
-"""
 @defcomp Production begin
     regions = Index()
 
@@ -60,4 +59,5 @@ function initproduction(model::Model)
 end
 
 "Default quota is small and positive"
-default_quota(m::Model) = [100. for i in 1:m.indices_counts[:regions]*m.indices_counts[:time]]
+default_quota(m::Model) = asmynumeric(ones(m.indices_counts[:regions], m.indices_counts[:time]))
+
