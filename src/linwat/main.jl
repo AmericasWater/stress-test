@@ -2,10 +2,10 @@ include("../world.jl")
 
 using OptiMimi
 
-include("Production.jl")
+include("Extraction.jl")
 include("Transportation.jl")
 include("Consumption.jl")
-include("Economy.jl")
+include("Infrastructure.jl")
 
 println("Creating model...")
 
@@ -13,19 +13,19 @@ println("Creating model...")
 m = newmodel(1);
 
 # Add all of the components
-production = initproduction(m);
+extraction = initextraction(m);
 transportation = inittransportation(m);
-economy = addcomponent(m, Economy);
+infrastructure = addcomponent(m, Infrastructure);
 consumption = initconsumption(m);
 
 # Connect up the components
-economy[:produced] = production[:produced];
-economy[:regionimports] = transportation[:regionimports];
-economy[:regionexports] = transportation[:regionexports];
-consumption[:marketed] = economy[:marketed];
+infrastructure[:extracted] = extraction[:extracted];
+infrastructure[:regionimports] = transportation[:regionimports];
+infrastructure[:regionexports] = transportation[:regionexports];
+consumption[:available] = infrastructure[:available];
 
 # Defaults to be overwritten by optimization
-production[:quota] = default_quota(m);
+extraction[:quota] = default_quota(m);
 transportation[:imported] = default_imported(m);
 
 # Run it and time it!
@@ -54,13 +54,18 @@ else
         constraints = [constraints; map(rr -> makeconstraint(rr, tt), 1:m.indices_counts[:regions])]
     end
 
-    networkconstraints = savelpconstraints(m, [:Transportation], [:imported], [0., 0.], [1e6, 1e6], soleobjective_transportation, constraints)
+    networkconstraints = savelpconstraints(m, [:Transportation], [:imported], constraints)
     serialize(open(joinpath(todata, "networkconstraints$suffix.jld"), "w"), networkconstraints)
 end
 
+# Combine component-specific objectives
+function objective(model::Model)
+    soleobjective_extraction(model) + soleobjective_transportation(model)
+end
+
 # Create the OptiMimi optimization problem
-optprob = problem(m, [:Production], [:quota], [0., 0.], [1e6, 1e6], soleobjective_production, Function[], [networkconstraints]);
+optprob = problem(m, [:Extraction], [:quota], [0., 0.], [1e6, 1e6], objective, Function[], [networkconstraints]);
 
 println("Solving...")
-@time sol = solution(optprob)
+@time sol = solution(optprob, (m::Model) -> [vec(default_quota(m)); vec(default_imported(m))])
 println(sol)
