@@ -5,7 +5,8 @@ using Mimi
 using Graphs
 
 # Only include counties within this state (give as 2 digit FIPS)
-filterstate = nothing #"08"
+# "10" for Delaware (3 counties), "08" for Colorado (64 counties)
+filterstate = nothing
 
 typealias RegionNetwork{R, E} IncidenceList{R, E}
 typealias SimpleRegionNetwork RegionNetwork{ExVertex, ExEdge}
@@ -39,7 +40,7 @@ else
     println("Trying to create a new region network...")
 
     # Load the network of counties
-    counties = readtable("../../data/county-info.csv", eltypes=[UTF8String, UTF8String, UTF8String, UTF8String, Float64, Float64, Float64, Float64, Float64, Float64, Float64])
+    counties = readtable("../../../data/county-info.csv", eltypes=[UTF8String, UTF8String, UTF8String, UTF8String, Float64, Float64, Float64, Float64, Float64, Float64, Float64])
 
     edges = Dict{UTF8String, Vector{UTF8String}}()
 

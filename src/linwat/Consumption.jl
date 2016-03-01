@@ -31,6 +31,7 @@ end
     available = Parameter(index=[regions, time])
 
     # Resource surplus over (or below) demand
+    demand = Variable(index=[regions, time])
     surplus = Variable(index=[regions, time])
 end
 
@@ -43,7 +44,8 @@ function timestep(c::Consumption, tt::Int)
     d = c.Dimensions
 
     for rr in d.regions
-        v.surplus[rr, tt] = p.available[rr, tt] - p.population[rr, tt] * p.demandperperson
+        v.demand[rr, tt] = p.population[rr, tt] * p.demandperperson
+        v.surplus[rr, tt] = p.available[rr, tt] - v.demand[rr, tt]
     end
 end
 
@@ -53,8 +55,9 @@ Add a consumption component to the model.
 function initconsumption(m::Model, years)
     consumption = addcomponent(m, Consumption)
 
-    # From http://hdr.undp.org/sites/default/files/reports/267/hdr06-complete.pdf
-    consumption[:demandperperson] = 575 * 365.25 # Liters / year
+    # Virtual water from http://hdr.undp.org/sites/default/files/reports/267/hdr06-complete.pdf
+    # Blue water from http://waterfootprint.org/media/downloads/Hoekstra_and_Chapagain_2006.pdf
+    consumption[:demandperperson] = 2480. + 575 * 365.25 * .001 # m^3 / yr
 
     allpops = Matrix{Float64}(m.indices_counts[:regions], length(years))
     totalpop = 0
@@ -70,7 +73,6 @@ function initconsumption(m::Model, years)
                 pop = pop0 * (1 - mod(year, 10) / 10) + pop1 * mod(year, 10) / 10
             end
             if isna(pop)
-                #println([fips, year, pop])
                 pop = 0.
             end
             allpops[ii, tt] = pop

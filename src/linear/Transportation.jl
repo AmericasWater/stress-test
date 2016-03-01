@@ -39,6 +39,9 @@ function timestep(c::Transportation, tt::Int)
     for ee in d.edges
         v.cost[ee, tt] = p.imported[ee, tt] * p.cost_edge[ee, tt]
     end
+    for ii in d.regions
+        v.regionexports[ii, tt] = 0.0
+    end
 
     # Sum over all edges for each region to translate to region-basis
     edge1 = 1
@@ -50,7 +53,6 @@ function timestep(c::Transportation, tt::Int)
         v.regionimports[ii, tt] = sum(p.imported[edge1:edge1 + numneighbors - 1, tt])
 
         # Sum over the edges that have this as an out-edge
-        v.regionexports[ii, tt] = 0.0
         sources = get(sourceiis, ii, Int64[])
         for source in sources
             v.regionexports[source, tt] += p.imported[edge1, tt]
